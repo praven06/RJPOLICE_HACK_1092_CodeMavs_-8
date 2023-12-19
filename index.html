@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="head">
+        <nav class="nav-bar">
+            <ul class="menu">
+                <li class="name"><i><strong>Code Mavs</strong></i></li>
+                <li><a class="ss" href="#home">Home</a></li>
+                <li><a href="#contact">contact-info</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div class="home">
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Deepfake Detection</title>
+            <link rel="stylesheet" href="style.css"/>
+            <script src="script.js"></script>
+        </head>
+        <body>
+            <h1 id="home">Deepfake Detection</h1>
+            <form id="upload-form" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".jpg, .jpeg, .png">
+                <button type="button" onclick="predict()">Predict</button>
+            </form>
+            <div id="prediction-result"></div>
+        
+            <div id="feedback-section" style="display: none;">
+                <h2>Feedback</h2>
+                <form id="feedback-form" method="post" onsubmit="submitFeedback(event)">
+                    <label for="feedback">Feedback: </label>
+                    <select name="feedback" id="feedback">
+                        <option value="deepfake">Deepfake</option>
+                        <option value="real">Real</option>
+                    </select>
+                    <button type="submit">Submit Feedback</button>
+                </form>
+                <div id="feedback-message"></div>
+            </div>
+        </body>
+        </html>
+        
+    </div>
+    <div class="contact" id="contact">
+        <h2>Contact Info:</h2>
+        <p>Email: bpraven05@gmail.com</p>
+        <br />
+        <p>Phone Number: 9345009766</p>
+        </div>
+    </div>
+</body>
+</html>
