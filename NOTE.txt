@@ -1,2 +1,0 @@
-Please note that model.h5 in app.py code is not still uploaded in github,due to incomplete of the machine learning model
-the model.h5 is on training process please give us time to make a better model to detect deep fake videos
