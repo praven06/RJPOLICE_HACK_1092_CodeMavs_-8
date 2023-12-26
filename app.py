@@ -1,50 +1,65 @@
-from flask import Flask, render_template, request, jsonify
-import numpy as np
+from flask import Flask, render_template, request
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+import numpy as np
+import os
+from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 
-# Initial model loading
-model = load_model('model.h5')
-target_size = (224, 224)
+# Load your trained model
+model = load_model('df_model.h5')
 
-# List to store feedback data
-feedback_data = []
-
+# Function to preprocess the input image
 def preprocess_image(image_path):
-    img = image.load_img(image_path, target_size=target_size)
+    img = image.load_img(image_path, target_size=(224, 224))
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
-    return img_array / 255.0
+    return img_array
 
+UPLOAD_FOLDER = 'D:/c backup/Pictures'  # Change this to your desired upload folder
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif' , 'Jfif'}  # Add allowed extensions
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Route for the home page
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    if request.method == 'POST':
-        file = request.files['file']
-        image_path = 'uploads/uploaded_image.jpg'
-        file.save(image_path)
-        img_array = preprocess_image(image_path)
-        prediction = model.predict(img_array)
-        result = "Deepfake" if prediction[0, 0] > 0.5 else "Real"
-        feedback_data.append((img_array, result))  # Store feedback data
-        return jsonify({"prediction": result, "feedback_available": True})
+# Route to handle image upload and prediction
+@app.route('/detect', methods=['POST'])
+def detect():
+    if 'file' not in request.files:
+        return render_template('index.html', prediction="No file selected.")
 
-@app.route('/feedback', methods=['POST'])
-def feedback():
-    if request.method == 'POST':
-        feedback = request.form['feedback']
-        if feedback.lower() in ['deepfake', 'real']:
-            feedback_label = 1 if feedback.lower() == 'deepfake' else 0
-            for img_array, _ in feedback_data:
-                model.train_on_batch(img_array, np.array([feedback_label]))  # Update model based on feedback
-            return jsonify({"message": "Feedback received and model updated successfully"})
+    file = request.files['file']
+    
+    if file.filename == '':
+        return render_template('index.html', prediction="No file selected.")
+
+    try:
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+
+            img_array = preprocess_image(file_path)
+            prediction = model.predict(img_array)
+            if prediction>0.9:
+                result="It is a Deepfake photo"
+            else: result ="It is not a Deepfake photo"
+            os.remove(file_path)  # Remove the uploaded file after processing
+
+            return render_template('index.html', prediction=result)
         else:
-            return jsonify({"message": "Invalid feedback label"})
+            return render_template('index.html', prediction="Invalid file type.")
+    except Exception as e:
+        return render_template('index.html', prediction=f"Error: {str(e)}")
 
 if __name__ == '__main__':
     app.run(debug=True)
