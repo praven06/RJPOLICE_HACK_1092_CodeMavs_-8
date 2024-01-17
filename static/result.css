@@ -1,0 +1,19 @@
+*{
+    background-color: #f1faee;
+    color: #237cb3;
+}
+div{
+    display: grid;
+    position: relative;
+    top:30vh;
+    justify-content: center;
+}
+h1{
+    font-size: 40px;
+}
+h2{
+font-size: 34px;
+}
+p{
+    font-size: 28px;
+}
