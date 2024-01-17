@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>𝐃𝐞𝐞𝐩 𝐟𝐚𝐤𝐞 𝐝𝐞𝐭𝐞𝐜𝐭𝐨𝐫</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='result.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/titlelogo.jpeg') }}" type="image/x-icon">
+</head>
+</head>
+<body>
+    <div>
+    <h1>Result Page</h1>
+
+    {% if prediction_result %}
+        <h2>Image Prediction Result:</h2>
+        <p>{{ prediction_result }}</p>
+    {% endif %}
+
+    {% if audio_prediction_result %}
+        <h2>Audio Prediction Result:</h2>
+        <p>{{ audio_prediction_result }}</p>
+    {% endif %}
+    </div>
+</body>
+</html>
