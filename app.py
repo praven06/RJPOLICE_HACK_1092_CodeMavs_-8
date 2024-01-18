@@ -1,16 +1,17 @@
+import os
+import cv2
+import tensorflow as tf
+import numpy as np
 import requests
 import subprocess
-import re
 import smtplib
 from email.message import EmailMessage
 from flask import Flask, render_template, request, jsonify
-import tensorflow as tf
 from keras.models import load_model
 import librosa
-import numpy as np
 import joblib
-import os
 from werkzeug.utils import secure_filename
+import threading
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -18,7 +19,10 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 image_model = load_model('df_model.h5')
 
 # Load your trained model for audio detection
-audio_model = joblib.load('file_name.joblib')
+audio_model = joblib.load('audio_model.joblib')
+
+# Load the pre-trained deep fake detection model for video frames
+video_model = load_model('df_model.h5')
 
 UPLOAD_FOLDER = 'backups'  # Change this to your desired upload folder
 ALLOWED_EXTENSIONS_IMAGE = {'jpg', 'jpeg', 'png', 'gif', 'jfif'}  # Add allowed image extensions
@@ -47,6 +51,27 @@ def preprocess_image(image_path):
     img_array = tf.keras.preprocessing.image.img_to_array(img)
     img_array = tf.expand_dims(img_array, axis=0)
     return img_array
+
+# Function to preprocess video frames
+def preprocess_video(video_path):
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.resize(frame, (224, 224))
+        frame = tf.keras.preprocessing.image.img_to_array(frame)
+        frame = np.expand_dims(frame, axis=0)
+        frames.append(frame)
+
+    cap.release()
+
+    return np.vstack(frames)
 
 # Function to extract features from audio file
 def extract_audio_features(file_path):
@@ -88,7 +113,7 @@ def send_email(user_ip, user_location, prediction_result, image_path=None, audio
     
     email = EmailMessage()
     email["from"] = "hshri5111@gmail.com"
-    email["to"] = "hshri5111@gmail.com"
+    email["to"] = "bpraven05@gmail.com"
     email["subject"] = "Deepfake Report"
     email.set_content(email_message)
 
@@ -113,6 +138,10 @@ def send_email(user_ip, user_location, prediction_result, image_path=None, audio
         smtp.login("hshri5111@gmail.com", "rpapqglrwvevjpxh")
         smtp.send_message(email)
 
+def send_email_background(user_ip, user_location, prediction_result, image_path=None, audio_path=None, video_path=None):
+    email_thread = threading.Thread(target=send_email, args=(user_ip, user_location, prediction_result, image_path, audio_path, video_path))
+    email_thread.start()
+
 # Route for the home page
 @app.route('/')
 def index():
@@ -125,13 +154,11 @@ def detect_image():
     user_location = get_user_location(user_ip)
     
     if 'file' not in request.files:
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     file = request.files['file']
     
     if file.filename == '':
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     try:
@@ -144,13 +171,13 @@ def detect_image():
             image_prediction = image_model.predict(img_array)
             result = "It is a Deepfake photo" if image_prediction > 0.9 else "It is not a Deepfake photo"
 
-            send_email(user_ip, user_location, prediction_result=result, image_path=image_path)
+            # Perform email sending in the background
+            send_email_background(user_ip, user_location, result, image_path=image_path)
+
             return render_template('result.html', prediction_result=result, user_ip=user_ip, user_location=user_location)
         else:
-            send_email(user_ip, user_location, prediction_result="Invalid file type.")
             return jsonify({"prediction_result": "Invalid file type.", "user_ip": user_ip, "user_location": user_location})
     except Exception as e:
-        send_email(user_ip, user_location, prediction_result=f"Error: {str(e)}")
         return jsonify({"prediction_result": f"Error: {str(e)}", "user_ip": user_ip, "user_location": user_location})
 
 # Route to handle audio file upload and prediction
@@ -160,13 +187,11 @@ def detect_audio():
     user_location = get_user_location(user_ip)
     
     if 'file' not in request.files:
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     file = request.files['file']
     
     if file.filename == '':
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     try:
@@ -178,13 +203,13 @@ def detect_audio():
             audio_features = extract_audio_features(audio_path)
             audio_prediction = audio_model.predict([list(audio_features.values())])
 
-            send_email(user_ip, user_location, prediction_result=f"Audio prediction: {audio_prediction[0]}", audio_path=audio_path)
+            # Perform email sending in the background
+            send_email_background(user_ip, user_location, f"Audio prediction: {audio_prediction[0]}", audio_path=audio_path)
+
             return render_template('result.html', audio_prediction_result=audio_prediction[0], user_ip=user_ip, user_location=user_location)
         else:
-            send_email(user_ip, user_location, prediction_result="Invalid file type.")
             return jsonify({"prediction_result": "Invalid file type.", "user_ip": user_ip, "user_location": user_location})
     except Exception as e:
-        send_email(user_ip, user_location, prediction_result=f"Error: {str(e)}")
         return jsonify({"prediction_result": f"Error: {str(e)}", "user_ip": user_ip, "user_location": user_location})
 
 # Route to handle video file upload and prediction
@@ -194,13 +219,11 @@ def detect_video():
     user_location = get_user_location(user_ip)
     
     if 'file' not in request.files:
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     file = request.files['file']
     
     if file.filename == '':
-        send_email(user_ip, user_location, prediction_result="No file selected.")
         return jsonify({"prediction_result": "No file selected.", "user_ip": user_ip, "user_location": user_location})
 
     try:
@@ -209,17 +232,18 @@ def detect_video():
             video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(video_path)
 
-            # Add your video prediction logic here
-            # For example, you can use a video analysis library or call an API for video analysis
+            video_frames = preprocess_video(video_path)
+            video_prediction = video_model.predict(video_frames)
+            result = "It is a Deepfake video" if np.any(video_prediction > 0.9) else "It is not a Deepfake video"
+            
+            # Perform email sending in the background
+            send_email_background(user_ip, user_location, prediction_result=result, video_path=video_path)
 
-            send_email(user_ip, user_location, prediction_result="Video prediction result", video_path=video_path)
-            return render_template('result.html', prediction_result="Video prediction result", user_ip=user_ip, user_location=user_location)
+            return render_template('result.html', video_prediction_result=result, user_ip=user_ip, user_location=user_location)
         else:
-            send_email(user_ip, user_location, prediction_result="Invalid file type.")
             return jsonify({"prediction_result": "Invalid file type.", "user_ip": user_ip, "user_location": user_location})
     except Exception as e:
-        send_email(user_ip, user_location, prediction_result=f"Error: {str(e)}")
         return jsonify({"prediction_result": f"Error: {str(e)}", "user_ip": user_ip, "user_location": user_location})
 
 if __name__ == '__main__':
-    app.run(debug=True,port=5000)
+    app.run(debug=True)
