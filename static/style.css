@@ -7,6 +7,10 @@ section {
     transition: scroll-behavior 3s ease-in-out;
 }
 
+body{
+    overflow-x:hidden;
+}
+
 #home {
     background-color: #f1faee;
     color: #001f3f;
@@ -29,18 +33,19 @@ section {
     font-size: large;
 }
 
-li {
+ul {
+    padding:40px;
     font-family: Georgia, 'Times New Roman', Times, serif;
     font-variant: small-caps;
     font-weight: bold;
     justify-content: space-between;
-    display: inline;
-    margin-right: 5%; /* Adjust as needed */
-    margin-left: 5%;  /* Adjust as needed */
+    display: flex;
+    flex-wrap:wrap;
+    margin: auto;
 }
 
 footer {
-    height: 40vh; /* Adjust as needed */
+    height: 20vh; /* Adjust as needed */
     width: 100%;
     background-color: black;
 }
@@ -55,14 +60,15 @@ ul {
     margin-top: -1vh; /* Adjust as needed */
 }
 h1{
-    margin-left:15%;
-    margin-right:15%;
+    width: 60%;
+    line-height:50px;
+    margin-inline:auto;
     font-size:32px;
 }
-img{
-    position: relative;
-    left:60%;
-    top:10vh;
+#robo{
+    float:right;
+    margin-right:20px;
+    border-radius: 150px;
 }
 span{
     font-size:34px;
@@ -87,28 +93,37 @@ li:hover{
 .zoom-on-hover:hover{
     transform: scale3d(1.2,1.2,1.2);
 }
-#image-div,#audio-div{
+#image-div,#audio-div,#video-div{
     display: flex;
     justify-content: center;
     align-items: center;
     position:relative;
     top:30%;
+    background-image: url("{{ url_for('static', filename='images/back.png') }}");
+    background-size: contain;
 } 
 h2{
+    font-size: 2.5rem;
+    font-variant:small-caps ;
     display: flex;
     justify-content: center;
     position:relative;
     top:10%;
 }
-input,button{
-    width:100%;
-    height: 6%;
-}
+
 footer{
     background:#f8f9fa;
     text-align:center;
     padding:1% ;
-    box-shadow: 0 .25rem .75rem rgba(43,56,45)
-    !important;
-    
+    width: 98%;
+}
+button{
+    box-shadow: 0 0 5px cyan;
+    background-color: cyan;
+    border-color: cyan;
+}
+button:hover{
+    box-shadow: 0 0 5px cyan,
+    0 0 25px cyan,0 0 50px cyan,
+    0 0 100px cyan,0 0 200px cyan;
 }
